@@ -1,0 +1,132 @@
+import pickle  # For storing and retrieving ticket data
+import os  # For checking file existence
+import tkinter as tk
+from tkinter import messagebox  # For user-friendly prompts
+
+# Ticket class to encapsulate ticket attributes
+class Ticket:
+    def __init__(self, t_type, qty, pay_method, online=False):
+        self.t_type = t_type  # Ticket type (e.g., Single-Day, VIP)
+        self.qty = qty  # Quantity of tickets
+        self.pay_method = pay_method  # Payment method
+        self.online = online  # Online purchase status
+
+    # Encapsulation with getters and setters
+    def get_t_type(self): return self.t_type
+    def get_qty(self): return self.qty
+    def get_pay_method(self): return self.pay_method
+    def get_online(self): return self.online
+    def set_t_type(self, t_type): self.t_type = t_type
+    def set_qty(self, qty): self.qty = qty
+    def set_pay_method(self, pay_method): self.pay_method = pay_method
+    def set_online(self, online): self.online = online
+
+
+# Main ticket purchasing interface
+class TixPurch:
+    def __init__(self, root):
+        self.file = "tickets.pkl"  # Persistent ticket data file
+        self.tickets = self.load_tickets()
+
+        self.root = root
+        self.root.title("TixPurch Interface")
+
+        # Display ticket types button
+        tk.Button(self.root, text="Show Ticket Options", command=self.show_ticket_types).pack()
+
+        # Purchase ticket button
+        tk.Button(self.root, text="Purchase Tickets", command=self.buy_tickets).pack()
+
+        # Quit application button
+        tk.Button(self.root, text="Quit", command=self.quit).pack()
+
+    # Load tickets from file
+    def load_tickets(self):
+        if os.path.exists(self.file):
+            with open(self.file, "rb") as f:
+                return pickle.load(f)
+        return []
+
+    # Save tickets to file
+    def save_tickets(self):
+        with open(self.file, "wb") as f:
+            pickle.dump(self.tickets, f)
+
+    # Show ticket options to the user
+    def show_ticket_types(self):
+        ticket_options = [
+            "1. Single-Day Pass: 275 DHS",
+            "2. Two-Day Pass: 480 DHS (10% discount online)",
+            "3. Annual Membership: 1,840 DHS (15% renewal discount)",
+            "4. Child Ticket: 185 DHS",
+            "5. Group Ticket: 220 DHS per person",
+            "6. VIP Experience Pass: 550 DHS"
+        ]
+        details = "All tickets are valid for Adventure Land entry. \nOnline discounts apply!"
+        messagebox.showinfo("Ticket Types", "\n".join(ticket_options) + "\n\n" + details)
+
+    # Calculate discount based on ticket type and purchase mode
+    def calc_discount(self, t_type, online):
+        discounts = {"2": 0.10, "3": 0.15}
+        return discounts.get(t_type, 0) if online else 0
+
+    # Purchase tickets functionality
+    def buy_tickets(self):
+        def save_tix():
+            t_type = t_type_entry.get()
+            qty = int(qty_entry.get())
+            pay_method = pay_method_var.get()
+            online = online_var.get()
+
+            # Validate ticket type
+            if t_type not in ["1", "2", "3", "4", "5", "6"]:
+                messagebox.showerror("Error", "Invalid ticket type.")
+                return
+
+            # Apply discounts
+            discount = self.calc_discount(t_type, online)
+            prices = {"1": 275, "2": 480, "3": 1840, "4": 185, "5": 220, "6": 550}
+            total_price = prices[t_type] * qty
+            final_price = total_price * (1 - discount)
+
+            # Save the ticket
+            ticket = Ticket(t_type, qty, pay_method, online)
+            self.tickets.append(ticket)
+            self.save_tickets()
+
+            # Display purchase summary
+            summary = (
+                f"Ticket Purchased Successfully!\n"
+                f"Total Price: {total_price} DHS\n"
+                f"Discount Applied: {discount * 100}%\n"
+                f"Final Price: {final_price} DHS"
+            )
+            messagebox.showinfo("Purchase Summary", summary)
+            tix_window.destroy()
+
+        # Ticket purchase window
+        tix_window = tk.Toplevel(self.root)
+        tix_window.title("Buy Tickets")
+
+        tk.Label(tix_window, text="Ticket Type (1-6)").pack()
+        t_type_entry = tk.Entry(tix_window)
+        t_type_entry.pack()
+
+        tk.Label(tix_window, text="Quantity").pack()
+        qty_entry = tk.Entry(tix_window)
+        qty_entry.pack()
+
+        tk.Label(tix_window, text="Payment Method").pack()
+        pay_method_var = tk.StringVar(value="Credit")  # Default payment method
+        tk.Radiobutton(tix_window, text="Credit", variable=pay_method_var, value="Credit").pack()
+        tk.Radiobutton(tix_window, text="Debit", variable=pay_method_var, value="Debit").pack()
+
+        tk.Label(tix_window, text="Purchase Online?").pack()
+        online_var = tk.BooleanVar()
+        tk.Checkbutton(tix_window, text="Yes", variable=online_var).pack()
+
+        tk.Button(tix_window, text="Complete Purchase", command=save_tix).pack()
+
+    # Quit the application
+    def quit(self):
+        self.root.quit()
