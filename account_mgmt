@@ -1,0 +1,157 @@
+import pickle  # For saving/loading account data
+import os  # For file operations
+import tkinter as tk
+from tkinter import messagebox  # For user-friendly popups
+
+
+class Account:
+    # Handles individual customer data
+    def __init__(self, cid, name, email):
+        self.cid = cid  # Customer ID
+        self.name = name  # Customer Name
+        self.email = email  # Customer Email
+
+    # Getter and setter methods for encapsulation
+    def get_cid(self): return self.cid
+    def get_name(self): return self.name
+    def get_email(self): return self.email
+    def set_name(self, name): self.name = name
+    def set_email(self, email): self.email = email
+
+
+class AcctMgmt:
+    # Manage all customer account operations
+    def __init__(self, root):
+        self.file = "accounts.pkl"  # Persistent account data
+        self.accts = self.load_accts()
+
+        self.root = root
+        self.root.title("AcctMgmt Interface")
+
+        # Create account button
+        tk.Button(self.root, text="Create Account", command=self.create_acct).pack()
+
+        # Delete account button
+        tk.Button(self.root, text="Delete Account", command=self.del_acct).pack()
+
+        # Modify account button
+        tk.Button(self.root, text="Modify Account", command=self.mod_acct).pack()
+
+        # Display all accounts button
+        tk.Button(self.root, text="Display Accounts", command=self.disp_accts).pack()
+
+        # Quit button to exit
+        tk.Button(self.root, text="Quit", command=self.quit).pack()
+
+    # Load account data from file
+    def load_accts(self):
+        if os.path.exists(self.file):
+            with open(self.file, "rb") as f:
+                return pickle.load(f)
+        return []
+
+    # Save account data to file
+    def save_accts(self):
+        with open(self.file, "wb") as f:
+            pickle.dump(self.accts, f)
+
+    # Create a new account
+    def create_acct(self):
+        def save_new_acct():
+            cid = cid_entry.get()
+            name = name_entry.get()
+            email = email_entry.get()
+
+            # Check for duplicate Customer ID
+            if any(acct.get_cid() == cid for acct in self.accts):
+                messagebox.showerror("Error", "Customer ID already exists!")
+                return
+
+            new_acct = Account(cid, name, email)
+            self.accts.append(new_acct)
+            self.save_accts()
+            messagebox.showinfo("Success", "Account created successfully!")
+            acct_win.destroy()
+
+        # Create account window
+        acct_win = tk.Toplevel(self.root)
+        acct_win.title("New Account")
+
+        tk.Label(acct_win, text="Cust ID").pack()
+        cid_entry = tk.Entry(acct_win)
+        cid_entry.pack()
+
+        tk.Label(acct_win, text="Name").pack()
+        name_entry = tk.Entry(acct_win)
+        name_entry.pack()
+
+        tk.Label(acct_win, text="Email").pack()
+        email_entry = tk.Entry(acct_win)
+        email_entry.pack()
+
+        tk.Button(acct_win, text="Save", command=save_new_acct).pack()
+
+    # Delete an existing account
+    def del_acct(self):
+        def delete_acct():
+            cid = cid_entry.get()
+            for acct in self.accts:
+                if acct.get_cid() == cid:
+                    self.accts.remove(acct)
+                    self.save_accts()
+                    messagebox.showinfo("Success", "Account deleted!")
+                    del_win.destroy()
+                    return
+            messagebox.showerror("Error", "No matching account found!")
+
+        del_win = tk.Toplevel(self.root)
+        del_win.title("Delete Account")
+
+        tk.Label(del_win, text="Cust ID to Delete").pack()
+        cid_entry = tk.Entry(del_win)
+        cid_entry.pack()
+
+        tk.Button(del_win, text="Delete", command=delete_acct).pack()
+
+    # Modify account details
+    def mod_acct(self):
+        def save_mods():
+            cid = cid_entry.get()
+            for acct in self.accts:
+                if acct.get_cid() == cid:
+                    acct.set_name(name_entry.get())
+                    acct.set_email(email_entry.get())
+                    self.save_accts()
+                    messagebox.showinfo("Success", "Account updated!")
+                    mod_win.destroy()
+                    return
+            messagebox.showerror("Error", "No matching account found!")
+
+        mod_win = tk.Toplevel(self.root)
+        mod_win.title("Modify Account")
+
+        tk.Label(mod_win, text="Cust ID").pack()
+        cid_entry = tk.Entry(mod_win)
+        cid_entry.pack()
+
+        tk.Label(mod_win, text="New Name").pack()
+        name_entry = tk.Entry(mod_win)
+        name_entry.pack()
+
+        tk.Label(mod_win, text="New Email").pack()
+        email_entry = tk.Entry(mod_win)
+        email_entry.pack()
+
+        tk.Button(mod_win, text="Save Changes", command=save_mods).pack()
+
+    # Display all accounts
+    def disp_accts(self):
+        acct_info = "\n".join([f"ID: {acct.get_cid()}, Name: {acct.get_name()}, Email: {acct.get_email()}" for acct in self.accts])
+        if not acct_info:
+            messagebox.showinfo("No Accounts", "No accounts found.")
+        else:
+            messagebox.showinfo("Accounts", acct_info)
+
+    # Quit the application
+    def quit(self):
+        self.root.quit()
